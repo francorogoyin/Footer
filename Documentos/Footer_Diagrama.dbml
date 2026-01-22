@@ -1,0 +1,687 @@
+// Footer - Diagrama de Base de Datos
+// Para visualizar: https://dbdiagram.io
+
+// ============================================
+// TABLAS DE GEOGRAFIA
+// ============================================
+
+Table Continente {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+
+  Note: 'America del Sur, Europa, Asia, Africa, Oceania, America del Norte y Central'
+}
+
+Table Region {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+  Id_Continente int [ref: > Continente.Id]
+  Tipo varchar [note: 'Pais, Confederacion, Continente, Estado, Mundial']
+
+  Note: 'Unifica todas las regiones posibles para torneos'
+}
+
+Table Confederacion {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+  Abreviatura varchar
+  Id_Continente int [ref: > Continente.Id]
+
+  Note: 'CONMEBOL, UEFA, CONCACAF, CAF, AFC, OFC'
+}
+
+Table Pais {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+  Codigo_ISO varchar
+  Id_Confederacion int [ref: > Confederacion.Id]
+  Id_Region int [ref: > Region.Id]
+}
+
+Table Provincia_Estado {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+  Id_Pais int [ref: > Pais.Id]
+
+  Note: 'Para torneos estaduales, la provincia tiene su Region con Tipo=Estado'
+}
+
+Table Ciudad {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+  Id_Provincia_Estado int [ref: > Provincia_Estado.Id]
+}
+
+Table Barrio {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+  Id_Ciudad int [ref: > Ciudad.Id]
+
+  Note: 'Boedo, Nunez, La Boca, etc.'
+}
+
+Table Estadio {
+  Id int [pk, increment]
+  Id_Ciudad int [ref: > Ciudad.Id]
+  Id_Barrio int [ref: > Barrio.Id]
+  Capacidad int
+
+  Note: 'Id_Barrio puede ser NULL si no se conoce'
+}
+
+Table Nombre_Estadio {
+  Id int [pk, increment]
+  Id_Estadio int [ref: > Estadio.Id]
+  Nombre varchar [not null]
+  Anio_Inicio int
+  Anio_Fin int
+}
+
+// ============================================
+// TABLAS DE REFERENCIA (CATALOGOS)
+// ============================================
+
+Table Lateralidad {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+
+  Note: 'Izquierda, Derecha, No Aplica'
+}
+
+Table Parte_Cuerpo {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+  Tiene_Lateralidad boolean [default: false]
+
+  Note: 'Con lateralidad: Pie, Rodilla, Muslo, Brazo, Hombro, Mano, Codo. Sin: Cabeza, Cadera, Pecho, Abdomen, Genitales, Espalda, Desconocido'
+}
+
+Table Zona_Gol {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+
+  Note: 'Dentro del Area, Fuera del Area'
+}
+
+Table Tipo_Gol {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+
+  Note: 'Jugada, Penal, Tiro Libre Directo, Olimpico, En Contra'
+}
+
+Table Tipo_Tarjeta {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+
+  Note: 'Amarilla, Roja'
+}
+
+Table Tipo_Penal {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+
+  Note: 'En Partido, En Tanda'
+}
+
+Table Resultado_Penal {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+
+  Note: 'Convertido, Atajado, Desviado, Poste'
+}
+
+Table Tipo_Revision_VAR {
+  Id int [pk, increment]
+  Motivo varchar [not null]
+  Es_Revision boolean [default: true]
+
+  Note: 'Motivo: Gol, Penal, Tarjeta Roja. Es_Revision: true si revisa algo cobrado, false si es posible no cobrado'
+}
+
+Table Causa_Revision_VAR {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+
+  Note: 'Mano Previa, Falta Previa, Offside Previo, Falta en el Area, Agresion'
+}
+
+Table Resultado_Revision_VAR {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+
+  Note: 'Confirmado, Revertido, Sin Decision'
+}
+
+Table Zona_Campo {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+
+  Note: 'Arco, Defensa, Mediocampo, Ataque'
+}
+
+Table Posicion_Jugador {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+  Abreviatura varchar
+  Id_Zona_Campo int [ref: > Zona_Campo.Id]
+
+  Note: 'ARQ, DFC, LTD, LTI, CAD, CAI, MC, MCD, MCO, VOD, VOI, ENG, EXD, EXI, MP, DC, SP'
+}
+
+Table Pie_Habil {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+
+  Note: 'Derecho, Izquierdo, Ambidiestro'
+}
+
+Table Tipo_Fase {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+  Orden int
+
+  Note: 'Fecha Regular, Fase de Grupos, 32avos, 16avos, Octavos, Cuartos, Semifinal, Tercer Puesto, Final, Repechaje'
+}
+
+Table Tipo_Instancia {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+
+  Note: 'Ida, Vuelta, Desempate, Unico'
+}
+
+Table Ambito_Torneo {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+
+  Note: 'Nacional, Internacional, Selecciones'
+}
+
+// ============================================
+// TABLAS DE ENTIDADES PRINCIPALES
+// ============================================
+
+Table Equipo {
+  Id int [pk, increment]
+  Id_Ciudad int [ref: > Ciudad.Id]
+  Fecha_Fundacion date
+  Activo boolean [default: true]
+  Fecha_Creacion datetime
+  Fecha_Modificacion datetime
+
+  Note: 'Id_Ciudad es la ciudad de origen/fundacion del equipo'
+}
+
+Table Nombre_Equipo {
+  Id int [pk, increment]
+  Id_Equipo int [ref: > Equipo.Id]
+  Nombre varchar [not null]
+  Anio_Inicio int
+  Anio_Fin int
+}
+
+Table Seleccion {
+  Id int [pk, increment]
+  Id_Pais int [ref: > Pais.Id]
+  Id_Confederacion int [ref: > Confederacion.Id]
+  Activo boolean [default: true]
+
+  Note: 'El nombre se toma del pais'
+}
+
+Table Equipo_Estadio {
+  Id int [pk, increment]
+  Id_Equipo int [ref: > Equipo.Id]
+  Id_Estadio int [ref: > Estadio.Id]
+  Anio_Inicio int
+  Anio_Fin int
+  Es_Principal boolean
+}
+
+Table Jugador {
+  Id int [pk, increment]
+  Nombre_Completo varchar [not null]
+  Nombre_Conocido varchar
+  Fecha_Nacimiento date
+  Id_Pais_Nacimiento int [ref: > Pais.Id]
+  Id_Provincia_Nacimiento int [ref: > Provincia_Estado.Id]
+  Id_Posicion int [ref: > Posicion_Jugador.Id]
+  Id_Pie_Habil int [ref: > Pie_Habil.Id]
+  Altura_Cm int
+  Fecha_Fallecimiento date
+  Fecha_Creacion datetime
+  Fecha_Modificacion datetime
+}
+
+Table Jugador_Nacionalidad {
+  Id int [pk, increment]
+  Id_Jugador int [ref: > Jugador.Id]
+  Id_Pais int [ref: > Pais.Id]
+  Es_Principal boolean
+}
+
+Table Contrato_Jugador {
+  Id int [pk, increment]
+  Id_Jugador int [ref: > Jugador.Id]
+  Id_Equipo int [ref: > Equipo.Id]
+  Fecha_Inicio date
+  Fecha_Fin date
+  Monto_Fichaje decimal
+  Moneda varchar
+}
+
+Table Dorsal_Temporada {
+  Id int [pk, increment]
+  Id_Jugador int [ref: > Jugador.Id]
+  Id_Equipo int [ref: > Equipo.Id]
+  Dorsal int
+  Temporada varchar
+}
+
+Table Tecnico {
+  Id int [pk, increment]
+  Nombre_Completo varchar [not null]
+  Nombre_Conocido varchar
+  Fecha_Nacimiento date
+  Id_Ciudad_Nacimiento int [ref: > Ciudad.Id]
+  Id_Jugador int [ref: > Jugador.Id]
+  Altura_Cm int
+  Fecha_Fallecimiento date
+  Fecha_Creacion datetime
+  Fecha_Modificacion datetime
+}
+
+Table Contrato_Tecnico {
+  Id int [pk, increment]
+  Id_Tecnico int [ref: > Tecnico.Id]
+  Id_Participante int [note: 'FK a Equipo o Seleccion segun Tipo']
+  Tipo_Participante varchar [note: 'Equipo o Seleccion']
+  Fecha_Inicio date
+  Fecha_Fin date
+}
+
+Table Arbitro {
+  Id int [pk, increment]
+  Nombre_Completo varchar [not null]
+  Fecha_Nacimiento date
+  Id_Ciudad_Nacimiento int [ref: > Ciudad.Id]
+  Altura_Cm int
+  Fecha_Fallecimiento date
+}
+
+Table Rol_Cuerpo_Tecnico {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+
+  Note: 'Ayudante de Campo, Preparador Fisico, Entrenador de Arqueros, etc.'
+}
+
+Table Miembro_Cuerpo_Tecnico {
+  Id int [pk, increment]
+  Nombre_Completo varchar [not null]
+  Fecha_Nacimiento date
+  Id_Ciudad_Nacimiento int [ref: > Ciudad.Id]
+  Id_Jugador int [ref: > Jugador.Id]
+  Fecha_Fallecimiento date
+}
+
+Table Contrato_Cuerpo_Tecnico {
+  Id int [pk, increment]
+  Id_Miembro int [ref: > Miembro_Cuerpo_Tecnico.Id]
+  Id_Rol int [ref: > Rol_Cuerpo_Tecnico.Id]
+  Id_Participante int [note: 'FK a Equipo o Seleccion segun Tipo']
+  Tipo_Participante varchar [note: 'Equipo o Seleccion']
+  Fecha_Inicio date
+  Fecha_Fin date
+}
+
+// ============================================
+// TABLAS DE CONFIGURACION DE TORNEOS
+// ============================================
+
+Table Tipo_Torneo {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+  Descripcion text
+  Es_Oficial boolean [default: true]
+  Id_Ambito int [ref: > Ambito_Torneo.Id]
+
+  Note: 'Liga Ida y Vuelta, Copa Eliminacion, etc.'
+}
+
+Table Configuracion_Tipo_Torneo {
+  Id int [pk, increment]
+  Id_Tipo_Torneo int [ref: > Tipo_Torneo.Id]
+  Clave varchar [not null]
+  Valor_Default varchar
+  Descripcion text
+}
+
+Table Torneo {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+  Id_Tipo_Torneo int [ref: > Tipo_Torneo.Id]
+  Id_Region int [ref: > Region.Id]
+  Nivel int
+  Fecha_Creacion datetime
+
+  Note: 'Id_Region puede ser pais, confederacion, estado, etc.'
+}
+
+Table Sistema_Puntos {
+  Id int [pk, increment]
+  Nombre varchar [not null]
+  Puntos_Victoria int
+  Puntos_Empate int
+  Puntos_Derrota int
+}
+
+Table Edicion_Torneo {
+  Id int [pk, increment]
+  Id_Torneo int [ref: > Torneo.Id]
+  Temporada varchar
+  Fecha_Inicio date
+  Fecha_Fin date
+  Id_Sistema_Puntos int [ref: > Sistema_Puntos.Id]
+  Cantidad_Equipos int
+}
+
+Table Configuracion_Edicion {
+  Id int [pk, increment]
+  Id_Edicion_Torneo int [ref: > Edicion_Torneo.Id]
+  Clave varchar [not null]
+  Valor varchar
+}
+
+Table Criterio_Desempate {
+  Id int [pk, increment]
+  Id_Edicion_Torneo int [ref: > Edicion_Torneo.Id]
+  Orden int
+  Tipo varchar
+}
+
+Table Grupo_Edicion {
+  Id int [pk, increment]
+  Id_Edicion_Torneo int [ref: > Edicion_Torneo.Id]
+  Nombre varchar
+}
+
+Table Equipo_Grupo {
+  Id int [pk, increment]
+  Id_Grupo_Edicion int [ref: > Grupo_Edicion.Id]
+  Id_Participante int [note: 'FK a Equipo o Seleccion segun Tipo']
+  Tipo_Participante varchar [note: 'Equipo o Seleccion']
+}
+
+// ============================================
+// TABLAS DE PARTIDOS Y EVENTOS
+// ============================================
+
+Table Partido {
+  Id int [pk, increment]
+  Id_Edicion_Torneo int [ref: > Edicion_Torneo.Id]
+  Id_Fase int [ref: > Tipo_Fase.Id]
+  Id_Tipo_Instancia int [ref: > Tipo_Instancia.Id]
+  Numero_Fecha int
+  Id_Grupo int [ref: > Grupo_Edicion.Id]
+  Fecha date
+  Hora_Local time
+  Id_Estadio int [ref: > Estadio.Id]
+  Id_Local int [note: 'FK a Equipo o Seleccion segun Tipo_Participante']
+  Id_Visitante int [note: 'FK a Equipo o Seleccion segun Tipo_Participante']
+  Tipo_Participante varchar [note: 'Equipo o Seleccion']
+  Goles_Local int
+  Goles_Visitante int
+  Penales_Local int
+  Penales_Visitante int
+  Resultado_Walkover varchar [note: '3-0 o 0-3 si aplica, NULL si no']
+  Publico int
+  Es_Neutral boolean [default: false]
+  Id_Arbitro_Principal int [ref: > Arbitro.Id]
+  Id_Arbitro_Linea_1 int [ref: > Arbitro.Id]
+  Id_Arbitro_Linea_2 int [ref: > Arbitro.Id]
+  Id_Arbitro_Cuarto int [ref: > Arbitro.Id]
+  Id_Arbitro_VAR int [ref: > Arbitro.Id]
+  Id_Arbitro_AVAR int [ref: > Arbitro.Id]
+  Id_Tecnico_Local int [ref: > Tecnico.Id]
+  Id_Tecnico_Visitante int [ref: > Tecnico.Id]
+  Id_Tecnico_Interino_Local int [ref: > Tecnico.Id]
+  Id_Tecnico_Interino_Visitante int [ref: > Tecnico.Id]
+  Fecha_Creacion datetime
+  Fecha_Modificacion datetime
+
+  Note: 'Tecnico_Interino: cuando el DT oficial no puede dirigir ese partido'
+}
+
+Table Alineacion {
+  Id int [pk, increment]
+  Id_Partido int [ref: > Partido.Id]
+  Id_Jugador int [ref: > Jugador.Id]
+  Es_Local boolean
+  Es_Titular boolean
+  Dorsal int
+
+  Note: 'Capitan se registra en tabla Capitania'
+}
+
+Table Capitania {
+  Id int [pk, increment]
+  Id_Partido int [ref: > Partido.Id]
+  Id_Jugador int [ref: > Jugador.Id]
+  Es_Local boolean
+  Orden int
+
+  Note: 'Orden=1 capitan titular, Orden=2 si salio el 1, etc.'
+}
+
+Table Gol {
+  Id int [pk, increment]
+  Id_Partido int [ref: > Partido.Id]
+  Id_Jugador int [ref: > Jugador.Id]
+  Minuto int
+  Es_Tiempo_Extra boolean [default: false]
+  Id_Tipo_Gol int [ref: > Tipo_Gol.Id]
+  Id_Parte_Cuerpo int [ref: > Parte_Cuerpo.Id]
+  Id_Lateralidad int [ref: > Lateralidad.Id]
+  Id_Zona_Gol int [ref: > Zona_Gol.Id]
+  Es_En_Contra boolean [default: false]
+
+  Note: 'Id_Lateralidad NULL si Parte_Cuerpo no tiene lateralidad o es desconocido'
+}
+
+Table Asistencia {
+  Id int [pk, increment]
+  Id_Gol int [ref: - Gol.Id]
+  Id_Jugador int [ref: > Jugador.Id]
+}
+
+Table Tarjeta {
+  Id int [pk, increment]
+  Id_Partido int [ref: > Partido.Id]
+  Id_Sancionado int [note: 'FK polimorfica segun Tipo_Sancionado']
+  Tipo_Sancionado varchar [note: 'Jugador, Tecnico, Miembro_Cuerpo_Tecnico']
+  Id_Tipo_Tarjeta int [ref: > Tipo_Tarjeta.Id]
+  Minuto int
+  Es_Tiempo_Extra boolean [default: false]
+}
+
+Table Cambio {
+  Id int [pk, increment]
+  Id_Partido int [ref: > Partido.Id]
+  Id_Sale int [ref: > Jugador.Id]
+  Id_Entra int [ref: > Jugador.Id]
+  Minuto int
+  Es_Tiempo_Extra boolean [default: false]
+}
+
+Table Penal {
+  Id int [pk, increment]
+  Id_Partido int [ref: > Partido.Id]
+  Id_Jugador_Patea int [ref: > Jugador.Id]
+  Id_Jugador_Ataja int [ref: > Jugador.Id]
+  Id_Tipo_Penal int [ref: > Tipo_Penal.Id]
+  Id_Resultado_Penal int [ref: > Resultado_Penal.Id]
+  Minuto int
+  Orden_Tanda int
+  Es_Tiempo_Extra boolean [default: false]
+  Repeticiones int [default: 0]
+
+  Note: 'Si fue para local o visitante se deduce de Alineacion'
+}
+
+Table Revision_VAR {
+  Id int [pk, increment]
+  Id_Partido int [ref: > Partido.Id]
+  Minuto int
+  Id_Tipo_Revision int [ref: > Tipo_Revision_VAR.Id]
+  Id_Causa_Revision int [ref: > Causa_Revision_VAR.Id]
+  Id_Resultado_Revision int [ref: > Resultado_Revision_VAR.Id]
+  Descripcion text
+
+  Note: 'Id_Causa_Revision NULL si no aplica'
+}
+
+Table Lesion {
+  Id int [pk, increment]
+  Id_Partido int [ref: > Partido.Id]
+  Id_Jugador int [ref: > Jugador.Id]
+  Minuto int
+  Id_Parte_Cuerpo int [ref: > Parte_Cuerpo.Id]
+  Id_Lateralidad int [ref: > Lateralidad.Id]
+  Descripcion text
+
+  Note: 'Id_Lateralidad NULL si Parte_Cuerpo no tiene lateralidad o es desconocido'
+}
+
+Table Suspension_Partido {
+  Id int [pk, increment]
+  Id_Partido int [ref: > Partido.Id]
+  Minuto int
+  Causa varchar
+}
+
+Table Reanudacion {
+  Id int [pk, increment]
+  Id_Partido int [ref: > Partido.Id]
+  Fecha date
+  Id_Estadio int [ref: > Estadio.Id]
+  Formato varchar
+  Minuto_Inicio int
+}
+
+// ============================================
+// TABLAS DE RELACIONES HISTORICAS
+// ============================================
+
+Table Fusion_Equipo {
+  Id int [pk, increment]
+  Id_Equipo_Origen_1 int [ref: > Equipo.Id]
+  Id_Equipo_Origen_2 int [ref: > Equipo.Id]
+  Id_Equipo_Resultado int [ref: > Equipo.Id]
+  Fecha_Fusion date
+  Descripcion text
+}
+
+Table Sorteo_Desempate {
+  Id int [pk, increment]
+  Id_Edicion_Torneo int [ref: > Edicion_Torneo.Id]
+  Id_Fase int [ref: > Tipo_Fase.Id]
+  Id_Grupo int [ref: > Grupo_Edicion.Id]
+  Fecha date
+  Posicion_Disputa int
+  Descripcion text
+}
+
+Table Sorteo_Participante {
+  Id int [pk, increment]
+  Id_Sorteo int [ref: > Sorteo_Desempate.Id]
+  Id_Participante int [note: 'FK a Equipo o Seleccion segun Tipo']
+  Tipo_Participante varchar [note: 'Equipo o Seleccion']
+  Gano boolean
+}
+
+// ============================================
+// AGRUPACIONES PARA VISUALIZACION
+// ============================================
+
+TableGroup Geografia {
+  Continente
+  Region
+  Confederacion
+  Pais
+  Provincia_Estado
+  Ciudad
+  Barrio
+  Estadio
+  Nombre_Estadio
+}
+
+TableGroup Catalogos {
+  Lateralidad
+  Parte_Cuerpo
+  Zona_Gol
+  Tipo_Gol
+  Tipo_Tarjeta
+  Tipo_Penal
+  Resultado_Penal
+  Tipo_Revision_VAR
+  Causa_Revision_VAR
+  Resultado_Revision_VAR
+  Zona_Campo
+  Posicion_Jugador
+  Pie_Habil
+  Tipo_Fase
+  Tipo_Instancia
+  Ambito_Torneo
+}
+
+TableGroup Entidades {
+  Equipo
+  Nombre_Equipo
+  Seleccion
+  Equipo_Estadio
+  Jugador
+  Jugador_Nacionalidad
+  Contrato_Jugador
+  Dorsal_Temporada
+  Tecnico
+  Contrato_Tecnico
+  Arbitro
+  Rol_Cuerpo_Tecnico
+  Miembro_Cuerpo_Tecnico
+  Contrato_Cuerpo_Tecnico
+}
+
+TableGroup Torneos {
+  Tipo_Torneo
+  Configuracion_Tipo_Torneo
+  Torneo
+  Sistema_Puntos
+  Edicion_Torneo
+  Configuracion_Edicion
+  Criterio_Desempate
+  Grupo_Edicion
+  Equipo_Grupo
+}
+
+TableGroup Partidos {
+  Partido
+  Alineacion
+  Capitania
+  Gol
+  Asistencia
+  Tarjeta
+  Cambio
+  Penal
+  Revision_VAR
+  Lesion
+  Suspension_Partido
+  Reanudacion
+}
+
+TableGroup Historico {
+  Fusion_Equipo
+  Sorteo_Desempate
+  Sorteo_Participante
+}

@@ -3,12 +3,13 @@
 ## Índice
 
 1. [Filosofía de Diseño](#filosofía-de-diseño)
-2. [Tablas de Referencia (Catálogos)](#tablas-de-referencia-catálogos)
-3. [Tablas de Entidades Principales](#tablas-de-entidades-principales)
-4. [Tablas de Configuración de Torneos](#tablas-de-configuración-de-torneos)
-5. [Tablas de Partidos y Eventos](#tablas-de-partidos-y-eventos)
-6. [Tablas de Relaciones Históricas](#tablas-de-relaciones-históricas)
-7. [Consideraciones Técnicas](#consideraciones-técnicas)
+2. [Tablas de Geografía](#tablas-de-geografía)
+3. [Tablas de Referencia (Catálogos)](#tablas-de-referencia-catálogos)
+4. [Tablas de Entidades Principales](#tablas-de-entidades-principales)
+5. [Tablas de Configuración de Torneos](#tablas-de-configuración-de-torneos)
+6. [Tablas de Partidos y Eventos](#tablas-de-partidos-y-eventos)
+7. [Tablas de Relaciones Históricas](#tablas-de-relaciones-históricas)
+8. [Consideraciones Técnicas](#consideraciones-técnicas)
 
 ---
 
@@ -44,12 +45,35 @@
 
 ---
 
-## Tablas de Referencia (Catálogos).
+## Tablas de Geografía
+
+### Continente
+- Id: Identificador único. PK.
+- Nombre: Nombre del continente. "América del Sur".
+
+Datos: América del Sur, Europa, Asia, África, Oceanía,
+América del Norte y Central.
+
+---
+
+### Region
+- Id: Identificador único. PK.
+- Nombre: Nombre de la región. "Argentina".
+- Id_Continente: FK a Continente.
+- Tipo: Tipo de región. "Pais".
+
+Tipos: Pais, Confederacion, Continente, Estado, Mundial.
+
+Nota: Unifica todas las regiones posibles para torneos. El Paulistao
+tendría una Region tipo "Estado" para São Paulo.
+
+---
 
 ### Confederacion
 - Id: Identificador único. PK.
 - Nombre: Nombre completo. "CONMEBOL".
 - Abreviatura: Código corto. "CSF".
+- Id_Continente: FK a Continente.
 
 Datos: CONMEBOL, UEFA, CONCACAF, CAF, AFC, OFC.
 
@@ -60,24 +84,48 @@ Datos: CONMEBOL, UEFA, CONCACAF, CAF, AFC, OFC.
 - Nombre: Nombre del país. "Argentina".
 - Codigo_ISO: Código ISO 3166-1 alfa-3. "ARG".
 - Id_Confederacion: FK a Confederacion.
+- Id_Region: FK a Region. Para linkear con torneos.
+
+---
+
+### Provincia_Estado
+- Id: Identificador único. PK.
+- Nombre: Nombre de la provincia/estado. "Buenos Aires".
+- Id_Pais: FK a Pais.
+
+Nota: Permite torneos como Paulistao (São Paulo) o Carioca (Río).
+Para torneos estaduales, la provincia tiene su propia Region en
+la tabla Region con Tipo = "Estado".
 
 ---
 
 ### Ciudad
 - Id: Identificador único. PK.
 - Nombre: Nombre de la ciudad. "Buenos Aires".
-- Id_Pais: FK a Pais.
+- Id_Provincia_Estado: FK a Provincia_Estado.
+
+---
+
+### Barrio
+- Id: Identificador único. PK.
+- Nombre: Nombre del barrio. "Núñez".
+- Id_Ciudad: FK a Ciudad.
+
+Nota: Útil para filtrar equipos de Buenos Aires por barrio
+(Boedo, Núñez, La Boca, Parque Patricios, etc.).
 
 ---
 
 ### Estadio
 - Id: Identificador único. PK.
 - Id_Ciudad: FK a Ciudad.
+- Id_Barrio: FK a Barrio. NULL si no se conoce.
 - Capacidad: Capacidad actual (puede cambiar). 70000.
 
 Nota: El nombre va en Nombre_Estadio porque puede cambiar.
 
 ---
+
 ### Nombre_Estadio
 - Id: Identificador único. PK.
 - Id_Estadio: FK a Estadio.
@@ -87,11 +135,29 @@ Nota: El nombre va en Nombre_Estadio porque puede cambiar.
 
 ---
 
+## Tablas de Referencia (Catálogos)
+
+### Lateralidad
+- Id: Identificador único. PK.
+- Nombre: Lateralidad. "Izquierda".
+
+Datos: Izquierda, Derecha, No Aplica.
+
+---
+
 ### Parte_Cuerpo
 - Id: Identificador único. PK.
-- Nombre: Parte del cuerpo. "Cabeza".
+- Nombre: Parte del cuerpo. "Pie".
+- Tiene_Lateralidad: Si aplica izquierda/derecha. true.
 
-Datos: Cabeza, Pie Derecho, Pie Izquierdo, Otro, Desconocido.
+Datos (con lateralidad): Pie, Rodilla, Muslo, Brazo, Hombro,
+Mano, Codo.
+
+Datos (sin lateralidad): Cabeza, Cadera, Pecho, Abdomen,
+Genitales, Espalda, Desconocido.
+
+Nota: Cuando se usa en Gol o Lesion, si Tiene_Lateralidad = true,
+se debe especificar Id_Lateralidad en la tabla que referencia.
 
 ---
 
@@ -115,7 +181,7 @@ Datos: Jugada, Penal, Tiro Libre Directo, Olímpico, En Contra.
 - Id: Identificador único. PK.
 - Nombre: Tipo de tarjeta. "Amarilla".
 
-Datos: Amarilla, Roja, Doble Amarilla.
+Datos: Amarilla, Roja.
 
 ---
 
@@ -137,9 +203,28 @@ Datos: Convertido, Atajado, Desviado, Poste.
 
 ### Tipo_Revision_VAR
 - Id: Identificador único. PK.
-- Nombre: Motivo de revisión. "Gol".
+- Motivo: Qué se revisa. "Gol".
+- Es_Revision: Si es revisión de algo cobrado (true) o posible
+  no cobrado (false). true.
 
-Datos: Gol, Penal, Tarjeta Roja, Identidad.
+Datos:
+- Gol + Es_Revision=true: Revisión de gol ya cobrado.
+- Gol + Es_Revision=false: Posible gol no cobrado.
+- Penal + Es_Revision=true: Revisión de penal ya cobrado.
+- Penal + Es_Revision=false: Posible penal no cobrado.
+- Tarjeta Roja + Es_Revision=true: Revisión de roja ya mostrada.
+- Tarjeta Roja + Es_Revision=false: Posible roja no mostrada.
+
+---
+
+### Causa_Revision_VAR
+- Id: Identificador único. PK.
+- Nombre: Causa de la revisión. "Offside Previo".
+
+Datos: Mano Previa, Falta Previa, Offside Previo, Falta en el Área,
+Agresión.
+
+Nota: Se usa en Revision_VAR para especificar qué se revisaba.
 
 ---
 
@@ -151,12 +236,30 @@ Datos: Confirmado, Revertido, Sin Decisión.
 
 ---
 
+### Zona_Campo
+- Id: Identificador único. PK.
+- Nombre: Zona del campo. "Defensa".
+
+Datos: Arco, Defensa, Mediocampo, Ataque.
+
+---
+
 ### Posicion_Jugador
 - Id: Identificador único. PK.
 - Nombre: Posición natural. "Arquero".
 - Abreviatura: Código corto. "ARQ".
+- Id_Zona_Campo: FK a Zona_Campo.
 
-Datos: Arquero, Defensor, Mediocampista, Delantero.
+Datos:
+- Arco: Arquero (ARQ).
+- Defensa: Defensor Central (DFC), Lateral Derecho (LTD),
+  Lateral Izquierdo (LTI), Carrilero Derecho (CAD),
+  Carrilero Izquierdo (CAI).
+- Mediocampo: Mediocampista Central (MC), Mediocampista
+  Defensivo (MCD), Mediocampista Ofensivo (MCO),
+  Volante Derecho (VOD), Volante Izquierdo (VOI), Enganche (ENG).
+- Ataque: Extremo Derecho (EXD), Extremo Izquierdo (EXI),
+  Mediapunta (MP), Delantero Centro (DC), Segunda Punta (SP).
 
 ---
 
@@ -171,11 +274,22 @@ Datos: Derecho, Izquierdo, Ambidiestro.
 ### Tipo_Fase
 - Id: Identificador único. PK.
 - Nombre: Tipo de fase. "Semifinal".
-- Orden: Para ordenar cronológicamente. 4.
+- Orden: Para ordenar cronológicamente. 7.
 
-Datos: Fase de Grupos, Octavos de Final, Cuartos de Final,
-Semifinal, Tercer Puesto, Final, Fecha Regular, Repechaje,
-Play-off, Zona, Cruce Interzonal, Liguilla.
+Datos (en orden):
+1. Fecha Regular
+2. Fase de Grupos
+3. Treintaidosavos de Final
+4. Dieciseisavos de Final
+5. Octavos de Final
+6. Cuartos de Final
+7. Semifinal
+8. Tercer Puesto
+9. Final
+10. Repechaje
+
+Nota: Eliminatorias mundialistas usan Fecha Regular con Numero_Fecha
+en Partido.
 
 ---
 
@@ -189,27 +303,27 @@ Nota: Solo para eliminatorias. Las ligas usan Numero_Fecha en Partido.
 
 ---
 
-### Estado_Partido
+### Ambito_Torneo
 - Id: Identificador único. PK.
-- Nombre: Estado del partido. "Finalizado".
+- Nombre: Ámbito del torneo. "Nacional".
 
-Datos: Finalizado, Suspendido, Anulado, Walkover, Reprogramado.
-
-Nota: Anulado = se jugó pero se anuló (River-Boca 2015).
-Walkover = ganador por incomparecencia. Suspendido = no terminó.
+Datos: Nacional, Internacional, Selecciones.
 
 ---
 
-## Tablas de Entidades principales.
+## Tablas de Entidades Principales
 
 ### Equipo
 - Id: Identificador único. PK.
-- Id_Pais: FK a Pais.
-- Id_Ciudad: FK a Ciudad. NULL si desconocido.
+- Id_Ciudad: FK a Ciudad. Ciudad de fundación/origen.
 - Fecha_Fundacion: Fecha de fundación. 1905-04-01.
 - Activo: Si el equipo sigue existiendo. true.
 - Fecha_Creacion: Auditoría.
 - Fecha_Modificacion: Auditoría.
+
+Nota: Id_Ciudad es la ciudad de origen/fundación del equipo.
+El estadio actual puede estar en otra ciudad (ej: equipos que
+se mudaron), pero esto registra de dónde es históricamente.
 
 ---
 
@@ -241,6 +355,8 @@ Nota: El nombre se toma del país. Casos especiales como
 - Anio_Fin: Hasta cuándo (NULL = actual). NULL.
 - Es_Principal: Si es el estadio principal. true.
 
+Nota: De aquí se deduce la ubicación histórica del equipo.
+
 ---
 
 ### Jugador
@@ -249,6 +365,7 @@ Nota: El nombre se toma del país. Casos especiales como
 - Nombre_Conocido: Nombre público. "Lionel Messi".
 - Fecha_Nacimiento: Fecha de nacimiento. 1987-06-24.
 - Id_Pais_Nacimiento: FK a Pais. Donde nació.
+- Id_Provincia_Nacimiento: FK a Provincia_Estado. NULL si desconocido.
 - Id_Posicion: FK a Posicion_Jugador. Posición natural.
 - Id_Pie_Habil: FK a Pie_Habil.
 - Altura_Cm: Altura en centímetros. 170.
@@ -282,13 +399,27 @@ es con la que jugó en selecciones.
 
 ---
 
+### Dorsal_Temporada
+- Id: Identificador único. PK.
+- Id_Jugador: FK a Jugador.
+- Id_Equipo: FK a Equipo.
+- Dorsal: Número de camiseta. 10.
+- Temporada: Identificador de temporada. "2023-24".
+
+Nota: Un jugador puede tener distintos dorsales en distintas
+temporadas en el mismo equipo. Para consultas por partido, usar
+el dorsal en Alineacion (que puede diferir del oficial de temporada).
+
+---
+
 ### Tecnico
 - Id: Identificador único. PK.
 - Nombre_Completo: Nombre legal. "Marcelo Alberto Bielsa Caldera".
 - Nombre_Conocido: Nombre público. "Marcelo Bielsa".
 - Fecha_Nacimiento: Fecha de nacimiento. 1955-07-21.
-- Id_Pais_Nacimiento: FK a Pais.
+- Id_Ciudad_Nacimiento: FK a Ciudad.
 - Id_Jugador: FK a Jugador. Si fue jugador, referencia.
+- Altura_Cm: Altura en centímetros. NULL si desconocido.
 - Fecha_Fallecimiento: Fecha de fallecimiento. NULL si vive.
 - Fecha_Creacion: Auditoría.
 - Fecha_Modificacion: Auditoría.
@@ -298,12 +429,13 @@ es con la que jugó en selecciones.
 ### Contrato_Tecnico
 - Id: Identificador único. PK.
 - Id_Tecnico: FK a Tecnico.
-- Id_Equipo: FK a Equipo. NULL si es selección.
-- Id_Seleccion: FK a Seleccion. NULL si es equipo.
+- Id_Participante: ID del equipo o selección.
+- Tipo_Participante: "Equipo" o "Seleccion".
 - Fecha_Inicio: Inicio del contrato. 2018-08-01.
 - Fecha_Fin: Fin del contrato (NULL = actual). NULL.
 
-Restricción: Exactamente uno de Id_Equipo o Id_Seleccion NOT NULL.
+Nota: Id_Participante referencia a Equipo o Seleccion según
+Tipo_Participante.
 
 ---
 
@@ -311,7 +443,8 @@ Restricción: Exactamente uno de Id_Equipo o Id_Seleccion NOT NULL.
 - Id: Identificador único. PK.
 - Nombre_Completo: Nombre legal. "Néstor Fabián Pitana".
 - Fecha_Nacimiento: Fecha de nacimiento. 1975-06-17.
-- Id_Pais: FK a Pais.
+- Id_Ciudad_Nacimiento: FK a Ciudad.
+- Altura_Cm: Altura en centímetros. NULL si desconocido.
 - Fecha_Fallecimiento: Fecha de fallecimiento. NULL si vive.
 
 ---
@@ -329,7 +462,7 @@ Analista de Video, Médico, Kinesiólogo.
 - Id: Identificador único. PK.
 - Nombre_Completo: Nombre legal. "Pablo Aimar".
 - Fecha_Nacimiento: Fecha de nacimiento.
-- Id_Pais: FK a Pais.
+- Id_Ciudad_Nacimiento: FK a Ciudad.
 - Id_Jugador: FK a Jugador. Si fue jugador, referencia.
 - Fecha_Fallecimiento: Fecha de fallecimiento. NULL si vive.
 
@@ -339,25 +472,31 @@ Analista de Video, Médico, Kinesiólogo.
 - Id: Identificador único. PK.
 - Id_Miembro: FK a Miembro_Cuerpo_Tecnico.
 - Id_Rol: FK a Rol_Cuerpo_Tecnico.
-- Id_Equipo: FK a Equipo. NULL si es selección.
-- Id_Seleccion: FK a Seleccion. NULL si es equipo.
+- Id_Participante: ID del equipo o selección.
+- Tipo_Participante: "Equipo" o "Seleccion".
 - Fecha_Inicio: Inicio del contrato. 2018-08-01.
 - Fecha_Fin: Fin del contrato (NULL = actual). NULL.
 
-Restricción: Exactamente uno de Id_Equipo o Id_Seleccion NOT NULL.
+Nota: Id_Participante referencia a Equipo o Seleccion según
+Tipo_Participante.
 
 ---
 
-## Tablas de Configuración de Torneos.
+## Tablas de Configuración de Torneos
 
 ### Tipo_Torneo
 - Id: Identificador único. PK.
 - Nombre: Nombre del tipo. "Liga Ida y Vuelta".
 - Descripcion: Descripción detallada del formato.
+- Es_Oficial: Si es torneo oficial o amistoso. true.
+- Id_Ambito: FK a Ambito_Torneo.
 
 Datos: Liga Ida y Vuelta, Liga Solo Ida, Copa Eliminación Directa,
 Copa con Grupos y Eliminación, Copa con Zonas, Liga con Liguilla,
-Copa Estilo Nuevo Champions.
+Copa Estilo Nuevo Champions, Amistoso.
+
+Nota: Para partidos amistosos sueltos, usar torneo "Amistosos
+Internacionales" con edición por año.
 
 ---
 
@@ -379,11 +518,12 @@ cruce_interzonal, tiene_liguilla.
 - Id: Identificador único. PK.
 - Nombre: Nombre del torneo. "Copa Libertadores".
 - Id_Tipo_Torneo: FK a Tipo_Torneo. Tipo base.
-- Id_Pais: FK a Pais. NULL si internacional.
-- Id_Confederacion: FK a Confederacion. Organizadora.
-- Es_Selecciones: Si es torneo de selecciones. false.
+- Id_Region: FK a Region. Organizadora del torneo.
 - Nivel: División. 1 = primera, 2 = segunda.
 - Fecha_Creacion: Auditoría.
+
+Nota: Id_Region puede ser un país (Liga Argentina), confederación
+(Copa Libertadores), estado (Paulistao), o mundial (FIFA).
 
 ---
 
@@ -438,10 +578,11 @@ goles_visitante, sorteo.
 ### Equipo_Grupo
 - Id: Identificador único. PK.
 - Id_Grupo_Edicion: FK a Grupo_Edicion.
-- Id_Equipo: FK a Equipo. NULL si es de selecciones.
-- Id_Seleccion: FK a Seleccion. NULL si es de clubes.
+- Id_Participante: ID del equipo o selección.
+- Tipo_Participante: "Equipo" o "Seleccion".
 
-Restricción: Exactamente uno de Id_Equipo o Id_Seleccion NOT NULL.
+Nota: Id_Participante referencia a Equipo o Seleccion según
+Tipo_Participante.
 
 ---
 
@@ -457,16 +598,16 @@ Restricción: Exactamente uno de Id_Equipo o Id_Seleccion NOT NULL.
 - Fecha: Fecha del partido. 2024-03-15.
 - Hora_Local: Hora local. 21:00.
 - Id_Estadio: FK a Estadio.
-- Id_Equipo_Local: FK a Equipo. NULL si selecciones.
-- Id_Equipo_Visitante: FK a Equipo. NULL si selecciones.
-- Id_Seleccion_Local: FK a Seleccion. NULL si clubes.
-- Id_Seleccion_Visitante: FK a Seleccion. NULL si clubes.
+- Id_Local: ID del equipo o selección local.
+- Id_Visitante: ID del equipo o selección visitante.
+- Tipo_Participante: "Equipo" o "Seleccion".
 - Goles_Local: Goles del local (90 min + extra). 2.
 - Goles_Visitante: Goles del visitante. 1.
 - Penales_Local: Goles en tanda de penales. 4.
 - Penales_Visitante: Goles en tanda de penales. 3.
+- Resultado_Walkover: Resultado por walkover. "3-0". NULL si no aplica.
 - Publico: Asistencia. 65000.
-- Es_Cancha_Neutral: Si se jugó en cancha neutral. false.
+- Es_Neutral: Si se jugó en cancha neutral. false.
 - Id_Arbitro_Principal: FK a Arbitro.
 - Id_Arbitro_Linea_1: FK a Arbitro. Primer asistente.
 - Id_Arbitro_Linea_2: FK a Arbitro. Segundo asistente.
@@ -475,16 +616,18 @@ Restricción: Exactamente uno de Id_Equipo o Id_Seleccion NOT NULL.
 - Id_Arbitro_AVAR: FK a Arbitro. Asistente de VAR.
 - Id_Tecnico_Local: FK a Tecnico.
 - Id_Tecnico_Visitante: FK a Tecnico.
-- Id_Estado: FK a Estado_Partido. Default: Finalizado.
-- Motivo_Estado: Razón si no es Finalizado. "Gas pimienta".
+- Id_Tecnico_Interino_Local: FK a Tecnico. Reemplazante en ese partido.
+- Id_Tecnico_Interino_Visitante: FK a Tecnico. Reemplazante en ese partido.
 - Fecha_Creacion: Auditoría.
 - Fecha_Modificacion: Auditoría.
 
 Notas:
-- Equipos vs Equipos: usar Id_Equipo_Local/Visitante.
-- Selecciones vs Selecciones: usar Id_Seleccion_Local/Visitante.
-- Partidos mixtos históricos: se pueden combinar.
-- Es_Cancha_Neutral = true: ninguno es realmente "local".
+- Id_Local/Id_Visitante referencian a Equipo o Seleccion según Tipo_Participante.
+- Es_Neutral = true: ninguno es realmente "local".
+- Resultado_Walkover: si no es NULL, el partido fue definido por mesa.
+  Los goles del walkover se computan al capitán del equipo beneficiado.
+- Tecnico_Interino: cuando el DT oficial no puede dirigir ese partido
+  específico (ej: Gallardo suspendido en final Libertadores 2018).
 
 ---
 
@@ -495,9 +638,22 @@ Notas:
 - Es_Local: Si jugó para el equipo local. true.
 - Es_Titular: Si fue titular. true.
 - Dorsal: Número de camiseta. 10.
-- Es_Capitan: Si fue capitán. false.
-- Minuto_Entrada: Minuto que entró (NULL si titular). NULL.
-- Minuto_Salida: Minuto que salió (NULL si terminó). NULL.
+
+Nota: Minutos de entrada/salida se deducen de la tabla Cambio.
+Capitán se registra en tabla Capitania.
+
+---
+
+### Capitania
+- Id: Identificador único. PK.
+- Id_Partido: FK a Partido.
+- Id_Jugador: FK a Jugador.
+- Es_Local: Si es capitán del equipo local. true.
+- Orden: Orden de capitanía. 1.
+
+Nota: Orden = 1 es el capitán titular. Si sale o es expulsado y
+otro toma la cinta, ese tiene Orden = 2, etc. Permite registrar
+todos los capitanes de un partido si hubo cambios.
 
 ---
 
@@ -509,9 +665,13 @@ Notas:
 - Es_Tiempo_Extra: Si fue en tiempo extra. false.
 - Id_Tipo_Gol: FK a Tipo_Gol. Jugada, penal, etc.
 - Id_Parte_Cuerpo: FK a Parte_Cuerpo.
+- Id_Lateralidad: FK a Lateralidad. Si Parte_Cuerpo tiene lateralidad.
 - Id_Zona_Gol: FK a Zona_Gol.
 - Es_En_Contra: Si fue autogol. false.
-- Es_Para_Local: Si el gol fue a favor del local. true.
+
+Nota: Si fue para local o visitante se deduce de Alineacion.
+Id_Lateralidad es NULL si la parte del cuerpo no tiene lateralidad
+(ej: Cabeza) o si no se conoce.
 
 ---
 
@@ -527,10 +687,16 @@ Nota: Relación 1:1 con Gol (un gol tiene máximo una asistencia).
 ### Tarjeta
 - Id: Identificador único. PK.
 - Id_Partido: FK a Partido.
-- Id_Jugador: FK a Jugador. Amonestado.
+- Id_Sancionado: ID del sancionado (jugador, técnico o cuerpo técnico).
+- Tipo_Sancionado: Tipo de persona sancionada. "Jugador".
 - Id_Tipo_Tarjeta: FK a Tipo_Tarjeta.
 - Minuto: Minuto de la tarjeta (formato MMAA). 4500 = 45'.
 - Es_Tiempo_Extra: Si fue en tiempo extra. false.
+
+Tipos_Sancionado: Jugador, Tecnico, Miembro_Cuerpo_Tecnico.
+
+Nota: Id_Sancionado referencia a la tabla según Tipo_Sancionado.
+Jugador → Jugador.Id, Tecnico → Tecnico.Id, etc.
 
 ---
 
@@ -553,7 +719,12 @@ Nota: Relación 1:1 con Gol (un gol tiene máximo una asistencia).
 - Id_Resultado_Penal: FK a Resultado_Penal.
 - Minuto: Minuto si es en partido (formato MMAA). 8500 = 85'.
 - Orden_Tanda: Orden en la tanda. 3.
-- Es_Para_Local: Si lo pateó el equipo local. true.
+- Es_Tiempo_Extra: Si fue en tiempo extra. false.
+- Repeticiones: Cantidad de veces que se repitió. 0.
+
+Nota: Repeticiones = 0 significa que se pateó una sola vez.
+Si hubo VAR y se repitió, Repeticiones = 1, etc.
+Si fue para local o visitante se deduce de Alineacion.
 
 ---
 
@@ -562,6 +733,7 @@ Nota: Relación 1:1 con Gol (un gol tiene máximo una asistencia).
 - Id_Partido: FK a Partido.
 - Minuto: Minuto de la revisión (formato MMAA). 6700 = 67'.
 - Id_Tipo_Revision: FK a Tipo_Revision_VAR.
+- Id_Causa_Revision: FK a Causa_Revision_VAR. NULL si no aplica.
 - Id_Resultado_Revision: FK a Resultado_Revision_VAR.
 - Descripcion: Detalle de lo que pasó.
 
@@ -572,7 +744,36 @@ Nota: Relación 1:1 con Gol (un gol tiene máximo una asistencia).
 - Id_Partido: FK a Partido.
 - Id_Jugador: FK a Jugador. Lesionado.
 - Minuto: Minuto de la lesión (formato MMAA). 3200 = 32'.
+- Id_Parte_Cuerpo: FK a Parte_Cuerpo. Parte lesionada.
+- Id_Lateralidad: FK a Lateralidad. Si Parte_Cuerpo tiene lateralidad.
 - Descripcion: Descripción de la lesión.
+
+Nota: Id_Lateralidad es NULL si la parte del cuerpo no tiene
+lateralidad (ej: Cabeza) o si no se conoce.
+
+---
+
+### Suspension_Partido
+- Id: Identificador único. PK.
+- Id_Partido: FK a Partido.
+- Minuto: Minuto de la suspensión (formato MMAA). 500 = 5'.
+- Causa: Razón de la suspensión. "Invasión de Anvisa".
+
+Nota: El resultado al momento de suspensión se calcula con los
+goles registrados hasta ese minuto.
+
+---
+
+### Reanudacion
+- Id: Identificador único. PK.
+- Id_Partido: FK a Partido. El partido original suspendido.
+- Fecha: Fecha de reanudación.
+- Id_Estadio: FK a Estadio. Puede ser distinto al original.
+- Formato: Descripción del formato. "Dos tiempos de 14 minutos".
+- Minuto_Inicio: Desde qué minuto se reanuda. 500 = 5'.
+
+Nota: Linkea el partido original con su continuación. Los eventos
+de la reanudación se registran en el mismo Id_Partido original.
 
 ---
 
@@ -607,15 +808,31 @@ Equipos involucrados en Sorteo_Participante.
 ### Sorteo_Participante
 - Id: Identificador único. PK.
 - Id_Sorteo: FK a Sorteo_Desempate.
-- Id_Equipo: FK a Equipo. NULL si selecciones.
-- Id_Seleccion: FK a Seleccion. NULL si clubes.
+- Id_Participante: ID del equipo o selección.
+- Tipo_Participante: "Equipo" o "Seleccion".
 - Gano: Si ganó el sorteo. true/false.
 
-Restricción: Exactamente uno de Id_Equipo o Id_Seleccion NOT NULL.
+Nota: Id_Participante referencia a Equipo o Seleccion según
+Tipo_Participante.
 
 ---
 
 ## Consideraciones Técnicas
+
+### Formato de Minutos (MMAA)
+
+Los minutos de eventos se almacenan como INT con formato MMAA:
+- MM = minuto base (01-90, o más en tiempo extra).
+- AA = minutos de adición (00-99).
+
+Ejemplos:
+- 4500 = minuto 45 exacto.
+- 4502 = minuto 45+2 (segundo minuto de adición del primer tiempo).
+- 9000 = minuto 90 exacto.
+- 9005 = minuto 90+5.
+
+Valor especial:
+- 4599 = entretiempo (para cambios realizados en el descanso).
 
 ### Índices Recomendados
 
@@ -639,6 +856,9 @@ CREATE INDEX idx_edicion_torneo ON Edicion_Torneo(Id_Torneo);
 
 -- Búsquedas por estadio.
 CREATE INDEX idx_partido_estadio ON Partido(Id_Estadio);
+
+-- Búsquedas por región.
+CREATE INDEX idx_torneo_region ON Torneo(Id_Region);
 ```
 
 ### Consultas Frecuentes a Optimizar
@@ -648,6 +868,8 @@ CREATE INDEX idx_partido_estadio ON Partido(Id_Estadio);
 3. Tabla de posiciones de una edición.
 4. Historial de enfrentamientos entre dos equipos.
 5. Estadísticas agregadas por jugador/equipo/técnico.
+6. Equipos de un barrio específico.
+7. Torneos de una región específica.
 
 ### Manejo de Datos Históricos
 
@@ -660,6 +882,19 @@ CREATE INDEX idx_partido_estadio ON Partido(Id_Estadio);
 - Todas las FK tienen ON DELETE RESTRICT.
 - No se permite borrar entidades referenciadas.
 - Para "borrar" se usa soft delete con campo Activo = false.
+
+### FKs Polimórficas
+
+Las siguientes tablas usan FKs polimórficas (Id + Tipo):
+- Partido (Id_Local/Id_Visitante + Tipo_Participante)
+- Contrato_Tecnico (Id_Participante + Tipo_Participante)
+- Contrato_Cuerpo_Tecnico (Id_Participante + Tipo_Participante)
+- Equipo_Grupo (Id_Participante + Tipo_Participante)
+- Sorteo_Participante (Id_Participante + Tipo_Participante)
+- Tarjeta (Id_Sancionado + Tipo_Sancionado)
+
+Estas no tienen FK real en la BD; la integridad se valida en la
+aplicación.
 
 ---
 
